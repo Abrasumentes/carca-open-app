@@ -4,7 +4,9 @@ Faz isto uma única vez, num computador. No fim tens QA e PROD a funcionar, cada
 
 ## 1. GitHub
 
-1. O repositório deve ser **privado**.
+1. O repositório é **público**. No plano grátis do GitHub, os environments, as secrets por environment e a proteção
+   de branches só existem em repositórios públicos. O repositório não tem nada secreto: as chaves ficam no GitHub e no
+   Cloudflare, e os dados da liga ficam no Firebase.
 2. Em **Settings → Environments**, cria dois environments: `qa` e `production`.
    No `production`, ativa **Required reviewers** e escolhe-te a ti, se quiseres aprovar cada deploy de PROD.
    As secrets destes environments são adicionadas no passo 3.
