@@ -1,0 +1,35 @@
+# Cloudflare Pages: site estático (dist/) + Pages Functions (functions/).
+#
+#   - [vars] de topo     -> desenvolvimento local (emulador)
+#   - [env.preview.vars] -> QA   (branch develop e outros branches)
+#   - [env.production]   -> PROD (branch main)
+#
+# A secret FIREBASE_SERVICE_ACCOUNT NÃO vai aqui: define-se no painel do Cloudflare
+# (Settings → Variables and Secrets), separadamente para Preview e Production.
+# Os valores FIREBASE_* abaixo não são secretos (o browser vê-os de qualquer forma).
+
+name = "carca-open"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-09-01"
+
+[vars]
+APP_ENV = "local"
+FIREBASE_PROJECT_ID = "demo-carca-open"
+FIREBASE_API_KEY = "demo-key"
+FIREBASE_AUTH_DOMAIN = "demo-carca-open.firebaseapp.com"
+FIREBASE_APP_ID = "demo-app"
+FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080"
+
+[env.preview.vars]
+APP_ENV = "qa"
+FIREBASE_PROJECT_ID = "carca-open-qa"            # PREENCHER se o ID for diferente
+FIREBASE_API_KEY = "PREENCHER"
+FIREBASE_AUTH_DOMAIN = "carca-open-qa.firebaseapp.com"
+FIREBASE_APP_ID = "PREENCHER"
+
+[env.production.vars]
+APP_ENV = "prod"
+FIREBASE_PROJECT_ID = "carca-open-prod"          # PREENCHER se o ID for diferente
+FIREBASE_API_KEY = "PREENCHER"
+FIREBASE_AUTH_DOMAIN = "carca-open-prod.firebaseapp.com"
+FIREBASE_APP_ID = "PREENCHER"

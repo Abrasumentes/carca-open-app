@@ -1,0 +1,37 @@
+{
+  "name": "carca-open-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App da liga de ténis Carca Open: classificação, registo e confirmação de resultados.",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n db,api,web -c yellow,magenta,cyan \"npm:dev:db\" \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:db": "firebase emulators:start --only firestore --project demo-carca-open",
+    "dev:api": "node scripts/ensure-dist.mjs && wrangler pages dev --port 8788",
+    "dev:web": "vite",
+    "seed:local": "node scripts/seed-emulator.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p functions/tsconfig.json --noEmit",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "firebase": "^13.2.0",
+    "jose": "^6.2.15",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261103.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "concurrently": "^10.0.6",
+    "firebase-tools": "^15.34.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.157.0"
+  }
+}

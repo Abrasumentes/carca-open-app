@@ -1,0 +1,43 @@
+name: Deploy regras do Firestore
+
+# develop -> projeto QA   (GitHub environment "qa")
+# main    -> projeto PROD (GitHub environment "production")
+#
+# Cada GitHub environment tem a sua secret FIREBASE_SERVICE_ACCOUNT
+# (JSON da conta de serviço do projeto Firebase correspondente).
+# O site em si é publicado pelo Cloudflare Pages, que está ligado ao repositório.
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - firestore.rules
+      - firestore.indexes.json
+      - firebase.json
+      - .firebaserc
+      - .github/workflows/deploy-firestore.yml
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || 'qa' }}
+    env:
+      FIREBASE_ALIAS: ${{ github.ref_name == 'main' && 'prod' || 'qa' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Credenciais
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+      - name: Deploy
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_ALIAS" --non-interactive
+      - name: Limpar credenciais
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"

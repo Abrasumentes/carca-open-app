@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "demo-carca-open",
+    "qa": "carca-open-qa",
+    "prod": "carca-open-prod"
+  }
+}
