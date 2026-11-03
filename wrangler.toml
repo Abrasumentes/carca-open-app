@@ -22,10 +22,10 @@ FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080"
 
 [env.preview.vars]
 APP_ENV = "qa"
-FIREBASE_PROJECT_ID = "carca-open-qa"            # PREENCHER se o ID for diferente
-FIREBASE_API_KEY = "PREENCHER"
+FIREBASE_PROJECT_ID = "carca-open-qa"
+FIREBASE_API_KEY = "AIzaSyAChX6WB3v9Yp5OMbjlfZFxBIfgjRNP2Ic"
 FIREBASE_AUTH_DOMAIN = "carca-open-qa.firebaseapp.com"
-FIREBASE_APP_ID = "PREENCHER"
+FIREBASE_APP_ID = "1:201644946824:web:787c89ea7ee9947dc5363d"
 
 [env.production.vars]
 APP_ENV = "prod"
