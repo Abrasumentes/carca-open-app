@@ -29,7 +29,7 @@ FIREBASE_APP_ID = "1:201644946824:web:787c89ea7ee9947dc5363d"
 
 [env.production.vars]
 APP_ENV = "prod"
-FIREBASE_PROJECT_ID = "carca-open-prod"          # PREENCHER se o ID for diferente
-FIREBASE_API_KEY = "PREENCHER"
+FIREBASE_PROJECT_ID = "carca-open-prod"
+FIREBASE_API_KEY = "AIzaSyDYGpp4jyKfbE1axP5c-7h364-v55HWTms"
 FIREBASE_AUTH_DOMAIN = "carca-open-prod.firebaseapp.com"
-FIREBASE_APP_ID = "PREENCHER"
+FIREBASE_APP_ID = "1:735280618829:web:bb7d3a8754fd9b8974eb04"
