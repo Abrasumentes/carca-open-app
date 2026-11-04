@@ -2,6 +2,8 @@
 
 Faz isto uma única vez, num computador. No fim tens QA e PROD a funcionar, cada um com a sua base de dados.
 
+No fim, para carregar a época, abre `<endereço>/#admin`, cola a folha JOGOS e clica em Importar.
+
 ## 1. GitHub
 
 1. O repositório é **público**. No plano grátis do GitHub, os environments, as secrets por environment e a proteção
@@ -82,9 +84,19 @@ Faz isto nos dois projetos.
 
 Sem estes papéis, o deploy falha com `403, Permission denied to get service [firestore.googleapis.com]`.
 
+## 5b. Palavra-passe de administração (`ADMIN_KEY`)
+
+A página `#admin` serve para importar a folha JOGOS e está protegida por uma palavra-passe.
+
+1. Escolhe duas palavras-passe longas, uma para QA e outra para PROD.
+2. No Cloudflare, em **Settings → Variables and Secrets**, adiciona uma secret `ADMIN_KEY`:
+   - em **Preview**, com a de QA;
+   - em **Production**, com a de PROD.
+3. Guarda-as num gestor de palavras-passe.
+
 ## 6. Verificar
 
-Abre os endereços de QA e de PROD. A página de verificação deve mostrar:
+Abre `<endereço>/#estado` em QA e em PROD. A página deve mostrar:
 
 - o selo **QA** ou **Produção**;
 - ✓ Browser lê o Firestore;

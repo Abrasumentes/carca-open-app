@@ -15,7 +15,8 @@ service cloud.firestore {
       }
     }
 
-    match /players/{playerId} {
+    // Qual é a época atual (escrito pela importação).
+    match /config/app {
       allow read: if true;
       allow write: if false;
     }
