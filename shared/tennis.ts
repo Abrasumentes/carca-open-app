@@ -93,15 +93,84 @@ export function flipSets(sets: SetScore[]): SetScore[] {
   return sets.map(([a, b]) => [b, a]);
 }
 
-/** Lê o formato da folha ("0-4; 1-4") — usado na migração. */
+/* ------------------------------------------------------------------ */
+/* Resultado em texto, com tie-breaks opcionais                        */
+/* ------------------------------------------------------------------ */
+
+export interface ParsedScore {
+  sets: SetScore[];
+  /** Tie-break de cada set (só nos sets 5-4), na mesma perspetiva do set. */
+  tiebreaks: (SetScore | null)[];
+}
+
+const SEGMENT = /^(\d+)\s*-\s*(\d+)\s*(?:\(\s*(\d+)\s*-\s*(\d+)\s*\))?$/;
+const TIEBREAK_ONLY = /^\(\s*(\d+)\s*-\s*(\d+)\s*\)$/;
+
+/**
+ * Lê o formato da folha: "0-4; 1-4", "5-4 (7-4); 4-2" ou "5-4; (8-6); 4-1"
+ * (tie-break numa parte separada, que fica associado ao set anterior).
+ */
+export function parseScore(text: string): ParsedScore {
+  const out: ParsedScore = { sets: [], tiebreaks: [] };
+  for (const raw of text.split(';')) {
+    const s = raw.trim();
+    if (!s) continue;
+    const tb = TIEBREAK_ONLY.exec(s);
+    if (tb) {
+      const last = out.sets.length - 1;
+      if (last < 0 || out.tiebreaks[last]) throw new ScoreError(`Não sei a que set pertence o tie-break "${s}".`);
+      out.tiebreaks[last] = [Number(tb[1]), Number(tb[2])];
+      continue;
+    }
+    const m = SEGMENT.exec(s);
+    if (!m) throw new ScoreError(`Não percebo o resultado "${s}".`);
+    out.sets.push([Number(m[1]), Number(m[2])]);
+    out.tiebreaks.push(m[3] !== undefined ? [Number(m[3]), Number(m[4])] : null);
+  }
+  return out;
+}
+
 export function parseSetsText(text: string): SetScore[] {
-  return text
-    .split(';')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => {
-      const m = /^(\d+)\s*-\s*(\d+)$/.exec(s);
-      if (!m) throw new ScoreError(`Não percebo o resultado "${s}".`);
-      return [Number(m[1]), Number(m[2])] as SetScore;
-    });
+  return parseScore(text).sets;
+}
+
+/** Tie-break de set: até 7, com 2 pontos de diferença (7-5, 8-6, 10-8...). */
+export function tiebreakWinner([a, b]: SetScore): Side {
+  const w = Math.max(a, b);
+  const l = Math.min(a, b);
+  const ok = (w === 7 && l <= 5) || (w > 7 && l === w - 2);
+  if (!ok) throw new ScoreError(`Tie-break inválido (${a}-${b}). Vai até 7 com 2 pontos de diferença.`);
+  return a > b ? 0 : 1;
+}
+
+export function formatScore(p: ParsedScore): string {
+  return p.sets
+    .map(([a, b], i) => {
+      const tb = p.tiebreaks[i];
+      return tb ? `${a}-${b} (${tb[0]}-${tb[1]})` : `${a}-${b}`;
+    })
+    .join('; ');
+}
+
+/** Valida um resultado em texto (com tie-breaks). Devolve o texto normalizado. */
+export function validateScoreText(text: string): MatchResult {
+  const p = parseScore(text);
+  const result = validateMatch(p.sets);
+  p.tiebreaks.forEach((tb, i) => {
+    if (!tb) return;
+    const [a, b] = p.sets[i];
+    if (Math.max(a, b) !== 5 || Math.min(a, b) !== 4) {
+      throw new ScoreError(`Set ${i + 1}: só há tie-break num set 5-4 (está ${a}-${b}).`);
+    }
+    if (tiebreakWinner(tb) !== (a > b ? 0 : 1)) {
+      throw new ScoreError(`Set ${i + 1}: o tie-break (${tb[0]}-${tb[1]}) não bate com o set (${a}-${b}).`);
+    }
+  });
+  return { ...result, text: formatScore(p) };
+}
+
+/** Vira um resultado em texto para o ponto de vista do outro jogador, mantendo os tie-breaks. */
+export function flipScoreText(text: string): string {
+  const p = parseScore(text);
+  return formatScore({ sets: flipSets(p.sets), tiebreaks: p.tiebreaks.map((tb) => (tb ? [tb[1], tb[0]] : null)) });
 }

@@ -50,6 +50,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         matches: report.matches,
         played: report.played,
         errors: report.errors,
+        warnings: report.warnings,
         existing: Boolean(existing),
         existingPending: pendingNow,
         committed: false,
