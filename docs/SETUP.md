@@ -70,10 +70,17 @@ O endereço de QA fica `develop.carca-open.pages.dev` e o de PROD fica `carca-op
 
 Faz um push para `develop`, ou corre o workflow manualmente em **Actions → Deploy regras do Firestore → Run workflow**.
 
-Se o deploy falhar por falta de permissões, abre
-https://console.cloud.google.com/iam-admin/iam?project=carca-open-qa (troca pelo ID do teu projeto) e adiciona à conta
-`firebase-adminsdk-…@….iam.gserviceaccount.com` os papéis **Firebase Rules Admin** e **Cloud Datastore Index Admin**.
-Repete para PROD.
+**Antes do primeiro deploy**, dá à conta de serviço as permissões de que o Firebase CLI precisa.
+Faz isto nos dois projetos.
+
+1. Abre https://console.cloud.google.com/iam-admin/iam?project=carca-open-qa (depois repete com `carca-open-prod`).
+2. Clica no lápis ✏️ da conta `firebase-adminsdk-…@….iam.gserviceaccount.com`.
+3. Adiciona estes três papéis:
+   - **Service Usage Consumer**
+   - **Firebase Rules Admin**
+   - **Cloud Datastore Index Admin**
+
+Sem estes papéis, o deploy falha com `403, Permission denied to get service [firestore.googleapis.com]`.
 
 ## 6. Verificar
 
