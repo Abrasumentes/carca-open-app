@@ -1,27 +1,29 @@
-// Cria dados de exemplo no emulador local do Firestore (nunca em QA/PROD).
+// Cria uma época de exemplo no ambiente local (emulador), através da API de importação.
 // Uso: com `npm run dev` a correr, noutro terminal: npm run seed:local
-const HOST = process.env.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080';
-const PROJECT = 'demo-carca-open';
-const BASE = `http://${HOST}/v1/projects/${PROJECT}/databases/(default)/documents`;
+// Nunca toca em QA/PROD: fala só com http://127.0.0.1:8788 e usa a ADMIN_KEY local.
+const API = process.env.API_URL ?? 'http://127.0.0.1:8788';
 
-const players = Array.from({ length: 8 }, (_, i) => ({ id: `jogador-${i + 1}`, name: `Jogador ${i + 1}` }));
+const names = Array.from({ length: 10 }, (_, i) => `Jogador ${String.fromCharCode(65 + i)}`);
+const results = {
+  '0-1': ['20/09/2026', '4-2; 4-1', 'Jogador A'],
+  '0-2': ['22/09/2026', '2-4; 5-3; 10-7', 'Jogador A'],
+  '1-2': ['25/09/2026', '3-5; 2-4', 'Jogador C'],
+  '3-4': ['01/10/2026', '5-4; 4-0', 'Jogador D'],
+};
 
-async function put(path, fields) {
-  const body = { fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, toValue(v)])) };
-  const res = await fetch(`${BASE}/${path}`, {
-    method: 'PATCH',
-    headers: { authorization: 'Bearer owner', 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`${path}: ${res.status} ${await res.text()}`);
+const lines = [['#', 'Jogador 1', 'Jogador 2', 'Data', 'Resultado', 'Vencedor'].join('\t')];
+let n = 1;
+for (let i = 0; i < names.length; i++)
+  for (let j = i + 1; j < names.length; j++) lines.push([n++, names[i], names[j], ...(results[`${i}-${j}`] ?? ['', '', ''])].join('\t'));
+
+const res = await fetch(`${API}/api/admin/import`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', 'x-admin-key': 'local-admin' },
+  body: JSON.stringify({ seasonId: 'exemplo', seasonName: 'Época de exemplo', text: lines.join('\n'), commit: true, replace: true }),
+});
+const data = await res.json();
+if (!data.ok) {
+  console.error('Falhou:', data.error);
+  process.exit(1);
 }
-
-function toValue(v) {
-  if (typeof v === 'boolean') return { booleanValue: v };
-  if (typeof v === 'number') return { integerValue: String(v) };
-  return { stringValue: String(v) };
-}
-
-await put('seasons/2026-27', { name: 'Carca Open 2026/27 (exemplo)', status: 'ativa' });
-for (const p of players) await put(`players/${p.id}`, { name: p.name, active: true });
-console.log(`Emulador: 1 época e ${players.length} jogadores de exemplo criados.`);
+console.log(`Época de exemplo criada: ${data.players} jogadores, ${data.matches} jogos, ${data.played} com resultado.`);

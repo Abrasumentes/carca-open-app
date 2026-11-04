@@ -19,6 +19,7 @@ FIREBASE_API_KEY = "demo-key"
 FIREBASE_AUTH_DOMAIN = "demo-carca-open.firebaseapp.com"
 FIREBASE_APP_ID = "demo-app"
 FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080"
+ADMIN_KEY = "local-admin"                         # só local; em QA/PROD é uma secret no Cloudflare
 
 [env.preview.vars]
 APP_ENV = "qa"
