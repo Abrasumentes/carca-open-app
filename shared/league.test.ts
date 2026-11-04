@@ -111,7 +111,7 @@ describe('registar, confirmar e rejeitar', () => {
 });
 
 describe('classificação', () => {
-  it('pontos, depois menos jogos, depois ordem da lista', () => {
+  it('pontos, depois confronto direto, depois menos jogos, depois ordem da lista', () => {
     const rep = season({
       '0-1': ['23/09/2026', '4-0; 4-0', 'Ana Cardoso'],
       '0-2': ['24/09/2026', '0-4; 0-4', 'Bruno Cachola'],
@@ -119,12 +119,46 @@ describe('classificação', () => {
       '1-3': ['26/09/2026', '4-0; 4-0', 'Anita Martins'],
     });
     const t = computeStandings(rep.season);
+    // Ana e Anita têm 1 ponto: a Ana ganhou o jogo entre as duas.
     expect(t.map((r) => [r.pos, r.name, r.played, r.points])).toEqual([
       [1, 'Bruno Cachola', 2, 2],
       [2, 'Ana Cardoso', 2, 1],
-      [2, 'Anita Martins', 2, 1],
+      [3, 'Anita Martins', 2, 1],
       [4, 'João Cascais', 2, 0],
     ]);
+  });
+
+  it('o confronto direto vale mais do que ter menos jogos', () => {
+    const rep = season({
+      '0-1': ['23/09/2026', '0-4; 0-4', 'Anita Martins'], // Anita ganha à Ana
+      '0-2': ['24/09/2026', '4-0; 4-0', 'Ana Cardoso'],
+      '0-3': ['25/09/2026', '4-0; 4-0', 'Ana Cardoso'],
+      '1-2': ['26/09/2026', '0-4; 0-4', 'Bruno Cachola'],
+      '1-3': ['27/09/2026', '4-0; 4-0', 'Anita Martins'],
+    });
+    const t = computeStandings(rep.season);
+    // Ana 2 pts em 3 jogos; Anita 2 pts em 3 jogos; Anita ganhou o confronto direto.
+    expect(t.slice(0, 2).map((r) => [r.pos, r.name, r.points])).toEqual([
+      [1, 'Anita Martins', 2],
+      [2, 'Ana Cardoso', 2],
+    ]);
+  });
+
+  it('três empatados: conta as vitórias entre eles (mini-liga)', () => {
+    const rep = season({
+      '0-1': ['23/09/2026', '4-0; 4-0', 'Ana Cardoso'],
+      '1-2': ['24/09/2026', '4-0; 4-0', 'Anita Martins'],
+      '0-2': ['25/09/2026', '0-4; 0-4', 'Bruno Cachola'],
+    });
+    // Ciclo: todos com 1 vitória entre si → mesmos jogos → posição partilhada.
+    const t = computeStandings(rep.season);
+    expect(t.slice(0, 3).map((r) => r.pos)).toEqual([1, 1, 1]);
+    expect(t.slice(0, 3).map((r) => r.name)).toEqual(['Ana Cardoso', 'Anita Martins', 'Bruno Cachola']);
+  });
+
+  it('sem jogos: todos em 1.º lugar, pela ordem da lista', () => {
+    const t = computeStandings(season().season);
+    expect(t.map((r) => r.pos)).toEqual([1, 1, 1, 1]);
   });
 });
 

@@ -36,7 +36,7 @@ export function Standings({ season, me }: { season: Season; me: string }) {
         </table>
       </div>
       <p className="muted small">
-        {played} de {total} jogos realizados · 1 ponto por vitória · em caso de empate, fica à frente quem jogou menos.
+        {played} de {total} jogos realizados · 1 ponto por vitória · desempate: confronto direto, depois menos jogos.
       </p>
     </section>
   );

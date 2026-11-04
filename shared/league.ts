@@ -149,15 +149,20 @@ function withMatch(season: Season, match: Match, at: string): Season {
 
 /**
  * Classificação: 1 ponto por vitória.
- * Desempate: menos jogos realizados primeiro, depois a ordem da lista de participantes.
+ * Desempate entre jogadores com os mesmos pontos:
+ *   1. confronto direto: vitórias nos jogos entre os empatados
+ *      (com dois empatados, é simplesmente quem ganhou o jogo entre eles);
+ *   2. menos jogos realizados;
+ *   3. ordem da lista de participantes.
+ * Partilham a posição os jogadores empatados nos critérios 1 e 2.
  */
 export function computeStandings(season: Season): StandingRow[] {
   const rows = new Map<string, StandingRow>();
   season.players.forEach((p) =>
     rows.set(p.id, { pos: 0, playerId: p.id, name: p.name, played: 0, wins: 0, losses: 0, points: 0 }),
   );
-  for (const m of Object.values(season.matches)) {
-    if (m.status !== 'confirmado' || !m.winner) continue;
+  const confirmed = Object.values(season.matches).filter((m) => m.status === 'confirmado' && m.winner);
+  for (const m of confirmed) {
     for (const id of [m.p1, m.p2]) {
       const r = rows.get(id);
       if (!r) continue;
@@ -171,13 +176,27 @@ export function computeStandings(season: Season): StandingRow[] {
       }
     }
   }
+
+  // Vitórias de cada jogador contra os outros jogadores com os mesmos pontos.
+  const h2h = new Map<string, number>();
+  const pointsOf = (id: string) => rows.get(id)?.points ?? -1;
+  for (const m of confirmed) {
+    if (pointsOf(m.p1) === pointsOf(m.p2)) h2h.set(m.winner!, (h2h.get(m.winner!) ?? 0) + 1);
+  }
+  const h = (id: string) => h2h.get(id) ?? 0;
+
   const order = new Map(season.players.map((p, i) => [p.id, i]));
   const sorted = [...rows.values()].sort(
-    (a, b) => b.points - a.points || a.played - b.played || order.get(a.playerId)! - order.get(b.playerId)!,
+    (a, b) =>
+      b.points - a.points ||
+      h(b.playerId) - h(a.playerId) ||
+      a.played - b.played ||
+      order.get(a.playerId)! - order.get(b.playerId)!,
   );
   sorted.forEach((r, i) => {
     const prev = sorted[i - 1];
-    r.pos = prev && prev.points === r.points && prev.played === r.played ? prev.pos : i + 1;
+    const tied = prev && prev.points === r.points && h(prev.playerId) === h(r.playerId) && prev.played === r.played;
+    r.pos = tied ? prev.pos : i + 1;
   });
   return sorted;
 }
