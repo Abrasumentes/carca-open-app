@@ -2,7 +2,7 @@
  * Lógica da liga, sem dependências: usada pela API (fonte da verdade) e pelo site.
  * Todas as funções são puras: recebem uma época e devolvem uma época nova.
  */
-import { flipSets, formatSets, parseSetsText, POINTS_LOSS, POINTS_WIN, ScoreError, validateMatch } from './tennis';
+import { flipScoreText, POINTS_LOSS, POINTS_WIN, ScoreError, validateMatch, validateScoreText } from './tennis';
 import type { Match, Pending, Player, Season, StandingRow, SubmissionLog } from './types';
 
 export class LeagueError extends Error {
@@ -39,7 +39,7 @@ export function opponentOf(match: Match, playerId: string): string {
 
 /** Resultado na perspetiva de `playerId` (o resultado é guardado na perspetiva do p1). */
 export function scoreFor(match: Match, score: string, playerId: string): string {
-  return match.p1 === playerId ? score : formatSets(flipSets(parseSetsText(score)));
+  return match.p1 === playerId ? score : flipScoreText(score);
 }
 
 export function isoDate(d: Date): string {
@@ -198,23 +198,57 @@ export interface ImportRow {
 export interface ImportReport {
   season: Season;
   errors: string[];
+  /** Coisas que a importação assumiu e que convém confirmar */
+  warnings: string[];
   players: number;
   matches: number;
   played: number;
 }
 
-/** dd/mm/aaaa (ou aaaa-mm-dd) → aaaa-mm-dd */
-export function parseSheetDate(s: string): string | null {
+const pad = (n: number) => String(n).padStart(2, '0');
+
+function validYmd(y: number, m: number, d: number): string | null {
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+  return `${y}-${pad(m)}-${pad(d)}`;
+}
+
+/**
+ * Data da folha → aaaa-mm-dd.
+ * Aceita dd/mm/aaaa e aaaa-mm-dd. Com o ano abreviado ("26/10/15") é ambíguo:
+ * pode ser dd/mm/aa ou aa/mm/dd. Escolhe a leitura que cai nos últimos 2 anos
+ * (e não no futuro) e devolve `guessed: true` para avisar o administrador.
+ */
+export function parseSheetDate(s: string, today = new Date()): { date: string; guessed: boolean } | null {
   const t = s.trim();
-  let m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t);
-  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
-  m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
-  if (m) return t;
+  let m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(t);
+  if (m) {
+    const d = validYmd(+m[3], +m[2], +m[1]);
+    return d ? { date: d, guessed: false } : null;
+  }
+  m = /^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$/.exec(t);
+  if (m) {
+    const d = validYmd(+m[1], +m[2], +m[3]);
+    return d ? { date: d, guessed: false } : null;
+  }
+  m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2})$/.exec(t);
+  if (m) {
+    const max = isoDate(today);
+    const minDate = new Date(today);
+    minDate.setFullYear(minDate.getFullYear() - 2);
+    const min = isoDate(minDate);
+    const candidates = [validYmd(2000 + +m[3], +m[2], +m[1]), validYmd(2000 + +m[1], +m[2], +m[3])].filter(
+      (d): d is string => d !== null && d >= min && d <= max,
+    );
+    const unique = [...new Set(candidates)];
+    return unique.length === 1 ? { date: unique[0], guessed: true } : null;
+  }
   return null;
 }
 
 export function seasonFromRows(id: string, name: string, rows: ImportRow[], now: Date): ImportReport {
   const errors: string[] = [];
+  const warnings: string[] = [];
   const players: Player[] = [];
   const byName = new Map<string, Player>();
   const addPlayer = (n: string) => {
@@ -249,17 +283,21 @@ export function seasonFromRows(id: string, name: string, rows: ImportRow[], now:
     if (hasAny) {
       try {
         if (!r.result.trim()) throw new Error('falta o resultado');
-        const res = validateMatch(parseSetsText(r.result));
+        const res = validateScoreText(r.result);
         const winner = res.winner === 0 ? a : b;
         if (r.winner.trim() && r.winner.trim() !== winner.name) {
           throw new Error(`o vencedor indicado (${r.winner.trim()}) não bate com o resultado ${res.text}`);
         }
-        const date = r.date.trim() ? parseSheetDate(r.date) : null;
-        if (r.date.trim() && !date) throw new Error(`data inválida (${r.date.trim()})`);
-        Object.assign(match, { status: 'confirmado', score: res.text, winner: winner.id, playedOn: date });
+        const parsed = r.date.trim() ? parseSheetDate(r.date, now) : null;
+        if (r.date.trim() && !parsed) throw new Error(`data inválida (${r.date.trim()}); usa dia/mês/ano, por exemplo 15/10/2026`);
+        if (parsed?.guessed) {
+          const [y, mo, d] = parsed.date.split('-');
+          warnings.push(`${where}: a data "${r.date.trim()}" foi lida como ${d}/${mo}/${y}.`);
+        }
+        Object.assign(match, { status: 'confirmado', score: res.text, winner: winner.id, playedOn: parsed?.date ?? null });
         played += 1;
       } catch (e) {
-        errors.push(`${where}: ${(e as Error).message}.`);
+        errors.push(`${where}: ${(e as Error).message.replace(/\.$/, '')}.`);
       }
     }
     matches[mid] = match;
@@ -274,6 +312,7 @@ export function seasonFromRows(id: string, name: string, rows: ImportRow[], now:
   return {
     season: { id, name, status: 'ativa', players, matches, updatedAt: now.toISOString() },
     errors,
+    warnings,
     players: n,
     matches: Object.keys(matches).length,
     played,

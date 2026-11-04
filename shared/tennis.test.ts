@@ -39,3 +39,29 @@ describe('formatos', () => {
     expect(flipSets([[4, 2], [3, 5], [10, 7]])).toEqual([[2, 4], [5, 3], [7, 10]]);
   });
 });
+
+describe('tie-breaks escritos na folha', async () => {
+  const { validateScoreText, flipScoreText } = await import('./tennis');
+  it.each([
+    ['5-4 (7-4); 4-2', '5-4 (7-4); 4-2', 0],
+    ['5-4; (8-6); 4-1', '5-4 (8-6); 4-1', 0],
+    ['4-2; 5-4(7-5)', '4-2; 5-4 (7-5)', 0],
+    ['2-4; 4-5 (4-7)', '2-4; 4-5 (4-7)', 1],
+    ['4-5 (10-12); 5-4 (7-0); 10-8', '4-5 (10-12); 5-4 (7-0); 10-8', 0],
+  ])('aceita %s', (input, text, winner) => {
+    const r = validateScoreText(input);
+    expect(r.text).toBe(text);
+    expect(r.winner).toBe(winner);
+  });
+  it.each([
+    ['(8-6); 4-1', /a que set/],
+    ['4-2 (7-4); 4-1', /só há tie-break num set 5-4/],
+    ['5-4 (4-7); 4-1', /não bate/],
+    ['5-4 (7-6); 4-1', /Tie-break inválido/],
+  ])('rejeita %s', (input, msg) => {
+    expect(() => validateScoreText(input)).toThrow(msg);
+  });
+  it('vira o resultado com o tie-break', () => {
+    expect(flipScoreText('5-4 (7-4); 2-4; 10-8')).toBe('4-5 (4-7); 4-2; 8-10');
+  });
+});

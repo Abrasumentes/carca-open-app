@@ -127,3 +127,23 @@ describe('classificação', () => {
     ]);
   });
 });
+
+describe('datas da folha', async () => {
+  const { parseSheetDate } = await import('./league');
+  const today = new Date('2026-11-04T12:00:00');
+  it.each([
+    ['15/10/2026', '2026-10-15', false],
+    ['5/9/2026', '2026-09-05', false],
+    ['2026-10-15', '2026-10-15', false],
+    ['26/10/15', '2026-10-15', true],
+    ['26/09/28', '2026-09-28', true],
+    ['26/10/05', '2026-10-05', true],
+    ['26/10/23', '2026-10-23', true],
+    ['15/10/26', '2026-10-15', true],
+  ])('%s → %s', (input, date, guessed) => {
+    expect(parseSheetDate(input, today)).toEqual({ date, guessed });
+  });
+  it.each(['31/02/2026', 'ontem', '10/10/10'])('rejeita %s', (input) => {
+    expect(parseSheetDate(input, today)).toBeNull();
+  });
+});

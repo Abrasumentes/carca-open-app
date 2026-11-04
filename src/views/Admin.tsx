@@ -6,6 +6,7 @@ interface Report {
   matches: number;
   played: number;
   errors: string[];
+  warnings: string[];
   existing: boolean;
   existingPending: number;
   committed: boolean;
@@ -104,6 +105,16 @@ export function Admin() {
             </div>
           ) : (
             <div className="msg ok">A folha está válida.</div>
+          )}
+          {report.warnings?.length > 0 && (
+            <div className="msg info">
+              <b>Confirma {report.warnings.length === 1 ? 'esta data' : `estas ${report.warnings.length} datas`} (o ano estava abreviado):</b>
+              <ul>
+                {report.warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </div>
           )}
           {report.committed ? (
             <a className="btn primary" href="#classificacao">
